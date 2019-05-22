@@ -76,123 +76,123 @@
       ) {{ node.name }}
 </template>
 <script>
-import svgExport from '../lib/js/svgExport.js'
+  import svgExport from '../lib/js/svgExport.js'
 
-export default {
-  name: 'svg-renderer',
-  props: [
-    'size',
-    'nodes',
-    'noNodes',
-    'selected',
-    'linksSelected',
-    'links',
-    'nodeSize',
-    'padding',
-    'fontSize',
-    'strLinks',
-    'linkWidth',
-    'nodeLabels',
-    'linkLabels',
-    'labelOffset',
-    'nodeSym'
-  ],
+  export default {
+    name: 'svg-renderer',
+    props: [
+      'size',
+      'nodes',
+      'noNodes',
+      'selected',
+      'linksSelected',
+      'links',
+      'nodeSize',
+      'padding',
+      'fontSize',
+      'strLinks',
+      'linkWidth',
+      'nodeLabels',
+      'linkLabels',
+      'labelOffset',
+      'nodeSym'
+    ],
 
-  computed: {
-    nodeSvg () {
-      if (this.nodeSym) {
-        return svgExport.toObject(this.nodeSym)
-      }
-      return null
-    }
-  },
-  methods: {
-    getNodeSize (node, side) {
-      let size = node._size || this.nodeSize
-      if (side) size = node['_' + side] || size
-      return size
-    },
-    svgIcon (node) {
-      return node.svgObj || this.nodeSvg
-    },
-    emit (e, args) {
-      this.$emit('action', e, args)
-    },
-    svgScreenShot (cb, toSvg, background, allCss) {
-      let svg = svgExport.export(this.$refs.svg, allCss)
-      if (!toSvg) {
-        if (!background) background = this.searchBackground()
-        let canvas = svgExport.makeCanvas(this.size.w, this.size.h, background)
-        svgExport.svgToImg(svg, canvas, (err, img) => {
-          if (err) cb(err)
-          else cb(null, img)
-        })
-      } else {
-        cb(null, svgExport.save(svg))
+    computed: {
+      nodeSvg () {
+        if (this.nodeSym) {
+          return svgExport.toObject(this.nodeSym)
+        }
+        return null
       }
     },
-    linkClass (linkId) {
-      let cssClass = ['link']
-      if (this.linksSelected.hasOwnProperty(linkId)) {
-        cssClass.push('selected')
+    methods: {
+      getNodeSize (node, side) {
+        let size = node._size || this.nodeSize
+        if (side) size = node['_' + side] || size
+        return size
+      },
+      svgIcon (node) {
+        return node.svgObj || this.nodeSvg
+      },
+      emit (e, args) {
+        this.$emit('action', e, args)
+      },
+      svgScreenShot (cb, toSvg, background, allCss) {
+        let svg = svgExport.export(this.$refs.svg, allCss)
+        if (!toSvg) {
+          if (!background) background = this.searchBackground()
+          let canvas = svgExport.makeCanvas(this.size.w, this.size.h, background)
+          svgExport.svgToImg(svg, canvas, (err, img) => {
+            if (err) cb(err)
+            else cb(null, img)
+          })
+        } else {
+          cb(null, svgExport.save(svg))
+        }
+      },
+      linkClass (linkId) {
+        let cssClass = ['link']
+        if (this.linksSelected.hasOwnProperty(linkId)) {
+          cssClass.push('selected')
+        }
+        if (!this.strLinks) {
+          cssClass.push('curve')
+        }
+        return cssClass
+      },
+      linkPath (link) {
+        let d = {
+          M: [link.source.x | 0, link.source.y | 0],
+          X: [link.target.x | 0, link.target.y | 0]
+        }
+        if (this.strLinks) {
+          return 'M ' + d.M.join(' ') + ' L' + d.X.join(' ')
+        } else {
+          d.Q = [link.source.x, link.target.y]
+          return 'M ' + d.M + ' Q ' + d.Q.join(' ') + ' ' + d.X
+        }
+      },
+      nodeStyle (node) {
+        return (node._color) ? 'fill: ' + node._color : ''
+      },
+      linkStyle (link) {
+        let style = {}
+        if (link._color) style.stroke = link._color
+        return style
+      },
+      nodeClass (node, classes = []) {
+        let cssClass = (node._cssClass) ? node._cssClass : []
+        if (!Array.isArray(cssClass)) cssClass = [cssClass]
+        cssClass.push('node')
+        classes.forEach(c => cssClass.push(c))
+        if (this.selected[node.id]) cssClass.push('selected')
+        if (node.fx || node.fy) cssClass.push('pinned')
+        return cssClass
+      },
+      searchBackground () {
+        let vm = this
+        while (vm.$parent) {
+          let style = window.getComputedStyle(vm.$el)
+          let background = style.getPropertyValue('background-color')
+          let rgb = background.replace(/[^\d,]/g, '').split(',')
+          let sum = rgb.reduce((a, b) => parseInt(a) + parseInt(b), 0)
+          if (sum > 0) return background
+          vm = vm.$parent
+        }
+        return 'white'
+      },
+      spriteSymbol () {
+        let svg = this.nodeSym
+        if (svg) {
+          return svgExport.toSymbol(svg)
+        }
+      },
+      linkAttrs (link) {
+        let attrs = link._svgAttrs || {}
+        attrs['stroke-width'] = attrs['stroke-width'] || this.linkWidth
+        return attrs
       }
-      if (!this.strLinks) {
-        cssClass.push('curve')
-      }
-      return cssClass
-    },
-    linkPath (link) {
-      let d = {
-        M: [link.source.x | 0, link.source.y | 0],
-        X: [link.target.x | 0, link.target.y | 0]
-      }
-      if (this.strLinks) {
-        return 'M ' + d.M.join(' ') + ' L' + d.X.join(' ')
-      } else {
-        d.Q = [link.source.x, link.target.y]
-        return 'M ' + d.M + ' Q ' + d.Q.join(' ') + ' ' + d.X
-      }
-    },
-    nodeStyle (node) {
-      return (node._color) ? 'fill: ' + node._color : ''
-    },
-    linkStyle (link) {
-      let style = {}
-      if (link._color) style.stroke = link._color
-      return style
-    },
-    nodeClass (node, classes = []) {
-      let cssClass = (node._cssClass) ? node._cssClass : []
-      if (!Array.isArray(cssClass)) cssClass = [cssClass]
-      cssClass.push('node')
-      classes.forEach(c => cssClass.push(c))
-      if (this.selected[node.id]) cssClass.push('selected')
-      if (node.fx || node.fy) cssClass.push('pinned')
-      return cssClass
-    },
-    searchBackground () {
-      let vm = this
-      while (vm.$parent) {
-        let style = window.getComputedStyle(vm.$el)
-        let background = style.getPropertyValue('background-color')
-        let rgb = background.replace(/[^\d,]/g, '').split(',')
-        let sum = rgb.reduce((a, b) => parseInt(a) + parseInt(b), 0)
-        if (sum > 0) return background
-        vm = vm.$parent
-      }
-      return 'white'
-    },
-    spriteSymbol () {
-      let svg = this.nodeSym
-      if (svg) {
-        return svgExport.toSymbol(svg)
-      }
-    },
-    linkAttrs (link) {
-      let attrs = link._svgAttrs || {}
-      attrs['stroke-width'] = attrs['stroke-width'] || this.linkWidth
-      return attrs
     }
   }
-}
 </script>

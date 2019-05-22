@@ -69,252 +69,260 @@
             small nodes: {{ nodes.length }}
           li
             small links: {{ links.length }}
-
 </template>
 <script>
-import * as utils from './utils.js'
-import defaultData from './data.js'
-import D3Network from '../vue-d3-network.vue'
-import D3NetExampleMenu from './Menu.vue'
-import Selection from './Selection.vue'
-import nodeIcon from '../assets/node.svg?raw'
-export default {
-  name: 'd3-net-example',
-  components: {
-    D3Network,
-    D3NetExampleMenu,
-    Selection
-  },
-  data () {
-    let data = Object.assign({}, defaultData)
-    data.tools = {
-      pointer: {
-        tip: 'Select',
-        class: 'icon-pointer'
-      },
-      killer: {
-        tip: 'Click on link or node to kill',
-        class: 'icon-delete_forever'
-      },
-      parent: {
-        tip: 'click on node to create parent',
-        class: 'icon-repo-forked'
-      },
-      pin: {
-        tip: 'click on node to pin / unpin ',
-        class: 'icon-pin'
-      }
-    }
+  import * as utils from './utils.js'
+  import defaultData from './data.js'
+  import D3Network from '../vue-d3-network.vue'
+  import D3NetExampleMenu from './Menu.vue'
+  import Selection from './Selection.vue'
+  import nodeIcon from '../assets/node.svg?raw'
 
-    data.app = process.env.APP
-    data.tool = 'pointer'
-    data.lastNodeId = 0
-    data.lastLinkId = 0
-    data.settings = {
-      maxLinks: 3,
-      maxNodes: 150
-    }
-    data.showHint = true
-    data.toaster = null
-    data.svgChoice = false
-    data.toSvg = false
-    data.options.icon = false
-    data.nodeSym = null
-    return data
-  },
-  mounted () {
-    this.options.size.w = this.$el.clientWidth
-    this.options.size.h = this.$el.clientHeight
-  },
-  created () {
-    this.reset()
-  },
-  computed: {
-    showSel () {
-      return true
-    }
-  },
-  methods: {
-    linkCb (link) {
-      link.name = 'Link ' + link.id
-      return link
+  export default {
+    name: 'd3-net-example',
+    components: {
+      D3Network,
+      D3NetExampleMenu,
+      Selection
     },
-    screenShot () {
-      if (this.options.canvas) this.takeScreenShot(false)
-      else this.svgChoice = true
-    },
-    takeScreenShot () {
-      this.svgChoice = false
-      this.toaster = 'Exporting image'
-      this.$refs.net.screenShot(null, null, this.toSvg)
-    },
-    screenShotDone (err) {
-      this.toaster = err || 'Saving Screenshot...'
-      let vm = this
-      window.setTimeout(() => {
-        vm.toaster = null
-      }, 3000)
-    },
-    resetOptions () {
-      this.$set(this.$data, 'options', defaultData.options)
-      this.options.offset.x = 0
-      this.options.offset.y = 0
-    },
-    selection () {
-      return {
-        nodes: this.selected,
-        links: this.linksSelected
-      }
-    },
-    buttonClass (tool) {
-      if (tool === this.tool) return 'selected'
-    },
-    setTool (tool) {
-      this.tool = tool
-      let cursorClass = (tool === 'pointer') ? '' : 'cross-cursor'
-      this.$el.className = cursorClass
-    },
-    updateSelection () {
-      this.showSelection = (Object.keys(this.selected).length | Object.keys(this.linksSelected).length)
-    },
-    reset () {
-      this.selected = {}
-      this.linksSelected = {}
-      this.nodes = utils.makeRandomNodes(this.settings.maxNodes)
-      this.lastNodeId = this.nodes.length + 1
-      this.links = utils.makeRandomLinks(this.nodes, this.settings.maxLinks)
-      this.lastLinkId = this.links.length + 1
-    },
-    changeOptions (options) {
-      this.options = Object.assign({}, options)
-      if (options.icon) this.nodeSym = nodeIcon
-      else this.nodeSym = null
-    },
-    removeLink (link) {
-      this.unSelectLink(link.id)
-      this.links.splice(link.index, 1)
-    },
-    rebuildLinks (nodes) {
-      if (!nodes) nodes = this.nodes
-      let links = utils.rebuildLinks(nodes, this.links)
-      for (let link of links.removed) {
-        if (this.linksSelected[link.id]) {
-          delete (this.linksSelected[link.id])
+    data () {
+      let data = Object.assign({}, defaultData)
+      data.tools = {
+        pointer: {
+          tip: 'Select',
+          class: 'icon-pointer'
+        },
+        killer: {
+          tip: 'Click on link or node to kill',
+          class: 'icon-delete_forever'
+        },
+        parent: {
+          tip: 'click on node to create parent',
+          class: 'icon-repo-forked'
+        },
+        pin: {
+          tip: 'click on node to pin / unpin ',
+          class: 'icon-pin'
         }
       }
-      return links.newLinks
-    },
-    removeNode (nodeId) {
-      utils.removeNode(nodeId, this.nodes, (nodes) => {
-        if (nodes) {
-          this.links = this.rebuildLinks(nodes)
-          this.unSelectNode(nodeId)
-          this.nodes = utils.rebuildNodes(this.links, nodes)
-        }
-      })
-    },
-    pinNode (node) {
-      if (!node.pinned) {
-        node.pinned = true
-        node.fx = node.x
-        node.fy = node.y
-      } else {
-        node.pinned = false
-        node.fx = null
-        node.fy = null
+
+      data.app = process.env.APP
+      data.tool = 'pointer'
+      data.lastNodeId = 0
+      data.lastLinkId = 0
+      data.settings = { // 设置默认值
+        maxLinks: 3,
+        maxNodes: 20
       }
-      this.nodes[node.index] = node
+      data.showHint = true
+      data.toaster = null
+      data.svgChoice = false
+      data.toSvg = false
+      data.options.icon = false
+      data.nodeSym = null
+
+      return data
     },
-    // -- Selection
-    selectNode (node) {
-      this.selected[node.id] = node
+    mounted () {
+      this.options.size.w = this.$el.clientWidth
+      this.options.size.h = this.$el.clientHeight
     },
-    selectNodesLinks () {
-      for (let link of this.links) {
-        // node is selected
-        if (this.selected[link.sid] || this.selected[link.tid]) {
-          this.selectLink(link)
-          // node is not selected
-        } else {
-          this.unSelectLink(link.id)
-        }
+    created () {
+      this.reset()
+    },
+    computed: {
+      showSel () {
+        return true
       }
     },
-    nodeClick (event, node) {
-      switch (this.tool) {
-        case 'killer':
-          this.removeNode(node.id)
-          break
-        case 'parent':
-          this.createParent(node)
-          break
-        case 'pin':
-          this.pinNode(node)
-          break
-        default: // selection tool
-          // is selected
-          if (this.selected[node.id]) {
-            this.unSelectNode(node.id)
-            // is not selected
-          } else {
-            this.selectNode(node)
+    methods: {
+      linkCb (link) {
+        link.name = 'Link ' + link.id
+        return link
+      },
+      screenShot () {
+        if (this.options.canvas) this.takeScreenShot(false)
+        else this.svgChoice = true
+      },
+      takeScreenShot () {
+        this.svgChoice = false
+        this.toaster = 'Exporting image'
+        this.$refs.net.screenShot(null, null, this.toSvg)
+      },
+      screenShotDone (err) {
+        this.toaster = err || 'Saving Screenshot...'
+        let vm = this
+        window.setTimeout(() => {
+          vm.toaster = null
+        }, 3000)
+      },
+      resetOptions () {
+        this.$set(this.$data, 'options', defaultData.options)
+        this.options.offset.x = 0
+        this.options.offset.y = 0
+      },
+      selection () {
+        return {
+          nodes: this.selected,
+          links: this.linksSelected
+        }
+      },
+      buttonClass (tool) {
+        if (tool === this.tool) return 'selected'
+      },
+      setTool (tool) {
+        this.tool = tool
+        let cursorClass = (tool === 'pointer') ? '' : 'cross-cursor'
+        this.$el.className = cursorClass
+      },
+      updateSelection () {
+        this.showSelection = (Object.keys(this.selected).length | Object.keys(this.linksSelected).length)
+      },
+      reset () {
+        this.selected = {}
+        this.linksSelected = {}
+        // this.nodes = utils.makeRandomNodes(this.settings.maxNodes)
+        this.nodes = [
+          {id: 'product', name: '产品'},
+          {id: 'product_parent', name: '产品款式'}
+          {id: 'warehouse', name: '仓库'}
+          {id: 'warehouse', name: '仓库'}
+        ];
+        this.lastNodeId = this.nodes.length + 1
+        // this.links = utils.makeRandomLinks(this.nodes, this.settings.maxLinks)
+        this.links = {};
+        this.lastLinkId = this.links.length + 1
+      },
+      changeOptions (options) {
+        this.options = Object.assign({}, options)
+        if (options.icon) this.nodeSym = nodeIcon
+        else this.nodeSym = null
+      },
+      removeLink (link) {
+        this.unSelectLink(link.id)
+        this.links.splice(link.index, 1)
+      },
+      rebuildLinks (nodes) {
+        if (!nodes) nodes = this.nodes
+        let links = utils.rebuildLinks(nodes, this.links)
+        for (let link of links.removed) {
+          if (this.linksSelected[link.id]) {
+            delete (this.linksSelected[link.id])
           }
-          this.selectNodesLinks()
-          break
-      }
-      this.updateSelection()
-    },
-    linkClick (event, link) {
-      if (this.tool === 'killer') {
-        this.removeLink(link)
-      } else {
-        if (this.linksSelected[link.id]) {
-          this.unSelectLink(link.id)
-        } else {
-          this.selectLink(link)
         }
+        return links.newLinks
+      },
+      removeNode (nodeId) {
+        utils.removeNode(nodeId, this.nodes, (nodes) => {
+          if (nodes) {
+            this.links = this.rebuildLinks(nodes)
+            this.unSelectNode(nodeId)
+            this.nodes = utils.rebuildNodes(this.links, nodes)
+          }
+        })
+      },
+      pinNode (node) {
+        if (!node.pinned) {
+          node.pinned = true
+          node.fx = node.x
+          node.fy = node.y
+        } else {
+          node.pinned = false
+          node.fx = null
+          node.fy = null
+        }
+        this.nodes[node.index] = node
+      },
+      // -- Selection
+      selectNode (node) {
+        this.selected[node.id] = node
+      },
+      selectNodesLinks () {
+        for (let link of this.links) {
+          // node is selected
+          if (this.selected[link.sid] || this.selected[link.tid]) {
+            this.selectLink(link)
+            // node is not selected
+          } else {
+            this.unSelectLink(link.id)
+          }
+        }
+      },
+      nodeClick (event, node) {
+        switch (this.tool) {
+          case 'killer':
+            this.removeNode(node.id)
+            break
+          case 'parent':
+            this.createParent(node)
+            break
+          case 'pin':
+            this.pinNode(node)
+            break
+          default: // selection tool
+            // is selected
+            if (this.selected[node.id]) {
+              this.unSelectNode(node.id)
+              // is not selected
+            } else {
+              this.selectNode(node)
+            }
+            this.selectNodesLinks()
+            break
+        }
+        this.updateSelection()
+      },
+      linkClick (event, link) {
+        if (this.tool === 'killer') {
+          this.removeLink(link)
+        } else {
+          if (this.linksSelected[link.id]) {
+            this.unSelectLink(link.id)
+          } else {
+            this.selectLink(link)
+          }
+        }
+        this.updateSelection()
+      },
+      createParent (node) {
+        let nodeId = this.lastNodeId + 1
+        let linkId = this.lastLinkId + 1
+        let nNode = utils.newNode(nodeId)
+        nNode.x = node.x + 50
+        nNode.y = node.y + 50
+        this.nodes = this.nodes.concat(nNode)
+        this.lastNodeId++
+        this.links = this.links.concat(utils.newLink(linkId, node.id, nodeId))
+        this.lastLinkId++
+      },
+      selectLink (link) {
+        this.$set(this.linksSelected, link.id, link)
+      },
+      selectionEvent (action, args) {
+        utils.methodCall(this, action, args)
+        this.updateSelection()
+      },
+      clearSelection () {
+        this.selected = {}
+        this.linksSelected = {}
+      },
+      unSelectNode (nodeId) {
+        if (this.selected[nodeId]) {
+          delete (this.selected[nodeId])
+        }
+        this.selectNodesLinks()
+      },
+      unSelectLink (linkId) {
+        if (this.linksSelected[linkId]) {
+          delete (this.linksSelected[linkId])
+        }
+      },
+      setShowMenu (show) {
+        this.showMenu = show
+        this.showHint = false
       }
-      this.updateSelection()
-    },
-    createParent (node) {
-      let nodeId = this.lastNodeId + 1
-      let linkId = this.lastLinkId + 1
-      let nNode = utils.newNode(nodeId)
-      nNode.x = node.x + 50
-      nNode.y = node.y + 50
-      this.nodes = this.nodes.concat(nNode)
-      this.lastNodeId++
-      this.links = this.links.concat(utils.newLink(linkId, node.id, nodeId))
-      this.lastLinkId++
-    },
-    selectLink (link) {
-      this.$set(this.linksSelected, link.id, link)
-    },
-    selectionEvent (action, args) {
-      utils.methodCall(this, action, args)
-      this.updateSelection()
-    },
-    clearSelection () {
-      this.selected = {}
-      this.linksSelected = {}
-    },
-    unSelectNode (nodeId) {
-      if (this.selected[nodeId]) {
-        delete (this.selected[nodeId])
-      }
-      this.selectNodesLinks()
-    },
-    unSelectLink (linkId) {
-      if (this.linksSelected[linkId]) {
-        delete (this.linksSelected[linkId])
-      }
-    },
-    setShowMenu (show) {
-      this.showMenu = show
-      this.showHint = false
     }
   }
-}
 </script>
 <style lang="stylus">
   @import '../lib/styl/vars.styl'

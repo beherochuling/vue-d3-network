@@ -64,65 +64,63 @@
         button.btn(@click="reset" title="reset options")
           span(class="icon-reset")
           small &nbsp;Reset
-
 </template>
 <script>
-import defaultData from './data.js'
-export default {
-  name: 'd3-net-example-menu',
-  props: ['links', 'nodes', 'settings', 'options'],
-  data () {
-    let data = Object.assign({}, defaultData)
-    return {
-      opts: data.options,
-      showNodeValues: false,
-      showLinkValues: false,
-      setts: null
-    }
-  },
-  created () {
-    this.opts = this.options
-    this.setts = this.settings
-  },
-  methods: {
-    change () {
-      this.$emit('options', this.opts)
+  import defaultData from './data.js'
+  export default {
+    name: 'd3-net-example-menu',
+    props: ['links', 'nodes', 'settings', 'options'],
+    data () {
+      let data = Object.assign({}, defaultData)
+      return {
+        opts: data.options,
+        showNodeValues: false,
+        showLinkValues: false,
+        setts: null
+      }
     },
-    reset () {
-      this.opts = Object.assign({}, defaultData.options)
-      this.options.width = this.$el.clientWidth
-      this.options.height = this.$el.clientHeight
-      this.$emit('reset', this.options)
+    created () {
+      this.opts = this.options
+      this.setts = this.settings
     },
-    emit (e) {
-      this.$emit(e)
+    methods: {
+      change () {
+        this.$emit('options', this.opts)
+      },
+      reset () {
+        this.opts = Object.assign({}, defaultData.options)
+        this.options.width = this.$el.clientWidth
+        this.options.height = this.$el.clientHeight
+        this.$emit('reset', this.options)
+      },
+      emit (e) {
+        this.$emit(e)
+      }
     }
   }
-}
 </script>
 <style src="../assets/css/icons.css"></style>
 <style lang="stylus" scoped>
- @import '../lib/styl/vars.styl'
-.debug
-  font-size: 0.5em
-  list-style: none
+   @import '../lib/styl/vars.styl'
+  .debug
+    font-size: 0.5em
+    list-style: none
 
-.test-menu
-  display: table-cell
-  padding: 1em
-  list-style: none
-  li
-    margin: 0.5em 0
-    label
-      font-size: 0.85em
-      display: block
-      span
-        font-weight: normal
-    input + label
-      display: inline
-      margin-left: .5em
+  .test-menu
+    display: table-cell
+    padding: 1em
+    list-style: none
+    li
+      margin: 0.5em 0
+      label
+        font-size: 0.85em
+        display: block
+        span
+          font-weight: normal
+      input + label
+        display: inline
+        margin-left: .5em
 
-ul.test-menu + ul.test-menu
-  border-left: none
-
+  ul.test-menu + ul.test-menu
+    border-left: none
 </style>
